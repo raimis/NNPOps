@@ -599,34 +599,34 @@ void CudaANISymmetryFunctions::backprop(const float* radialDeriv, const float* a
     // If the input and output arrays point to device memory, we can access them directly.
     // Otherwise, we'll need to perform extra copies.
 
-    bool posOnDevice;
-    const float* radialPtr;
-    const float* angularPtr;
-    float* posPtr;
-    cudaPointerAttributes attrib;
-    cudaError_t result = cudaPointerGetAttributes(&attrib, radialDeriv);
-    if (result != cudaSuccess || attrib.devicePointer == 0) {
-        CHECK_RESULT(cudaMemcpyAsync(radialValues, radialDeriv, numAtoms*numSpecies*numRadial*sizeof(float), cudaMemcpyDefault));
-        radialPtr = radialValues;
-    }
-    else
-        radialPtr = (float*) attrib.devicePointer;
-    result = cudaPointerGetAttributes(&attrib, angularDeriv);
-    if (result != cudaSuccess || attrib.devicePointer == 0) {
-        CHECK_RESULT(cudaMemcpyAsync(angularValues, angularDeriv, numAtoms*(numSpecies*(numSpecies+1))*numAngular*sizeof(float)/2, cudaMemcpyDefault));
-        angularPtr = angularValues;
-    }
-    else
-        angularPtr = (float*) attrib.devicePointer;
-    result = cudaPointerGetAttributes(&attrib, positionDeriv);
-    if (result != cudaSuccess || attrib.devicePointer == 0) {
-        posOnDevice = false;
-        posPtr = positionDerivValues;
-    }
-    else {
-        posOnDevice = true;
-        posPtr = (float*) attrib.devicePointer;
-    }
+    // bool posOnDevice;
+    const float* radialPtr = radialDeriv;
+    const float* angularPtr = angularDeriv;
+    float* posPtr = positionDeriv;
+    // cudaPointerAttributes attrib;
+    // cudaError_t result = cudaPointerGetAttributes(&attrib, radialDeriv);
+    // if (result != cudaSuccess || attrib.devicePointer == 0) {
+    //     CHECK_RESULT(cudaMemcpyAsync(radialValues, radialDeriv, numAtoms*numSpecies*numRadial*sizeof(float), cudaMemcpyDefault));
+    //     radialPtr = radialValues;
+    // }
+    // else
+    //     radialPtr = (float*) attrib.devicePointer;
+    // result = cudaPointerGetAttributes(&attrib, angularDeriv);
+    // if (result != cudaSuccess || attrib.devicePointer == 0) {
+    //     CHECK_RESULT(cudaMemcpyAsync(angularValues, angularDeriv, numAtoms*(numSpecies*(numSpecies+1))*numAngular*sizeof(float)/2, cudaMemcpyDefault));
+    //     angularPtr = angularValues;
+    // }
+    // else
+    //     angularPtr = (float*) attrib.devicePointer;
+    // result = cudaPointerGetAttributes(&attrib, positionDeriv);
+    // if (result != cudaSuccess || attrib.devicePointer == 0) {
+    //     posOnDevice = false;
+    //     posPtr = positionDerivValues;
+    // }
+    // else {
+    //     posOnDevice = true;
+    //     posPtr = (float*) attrib.devicePointer;
+    // }
 
     // Clear the output array.
 
@@ -662,7 +662,7 @@ void CudaANISymmetryFunctions::backprop(const float* radialDeriv, const float* a
 
     // Copy the final values to the destination memory.
 
-    if (!posOnDevice)
-        CHECK_RESULT(cudaMemcpyAsync(positionDeriv, positionDerivValues, numAtoms*sizeof(float3), cudaMemcpyDefault));
+    // if (!posOnDevice)
+    //     CHECK_RESULT(cudaMemcpyAsync(positionDeriv, positionDerivValues, numAtoms*sizeof(float3), cudaMemcpyDefault));
 }
 
