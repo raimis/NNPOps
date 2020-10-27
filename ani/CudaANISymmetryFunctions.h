@@ -46,7 +46,8 @@ public:
      *                            dot product by 0.95.  This leads to large errors in angles, especially ones that are close to 0 or pi.
      */
     CudaANISymmetryFunctions(int numAtoms, int numSpecies, float radialCutoff, float angularCutoff, bool periodic, const std::vector<int>& atomSpecies,
-            const std::vector<RadialFunction>& radialFunctions, const std::vector<AngularFunction>& angularFunctions, bool torchani);
+            const std::vector<RadialFunction>& radialFunctions, const std::vector<AngularFunction>& angularFunctions, bool torchani,
+            int* neighbors, int* neighborCount);
     /**
      * Release memory when the object is destroyed.
      */
@@ -83,8 +84,8 @@ private:
     int* neighborCount;
     int* angularIndex;
     int* atomSpeciesArray;
-    float* positions;
-    float* periodicBoxVectors;
+    const float* positions;
+    const float* periodicBoxVectors;
     RadialFunction* radialFunctionArray;
     AngularFunction* angularFunctionArray;
     float* radialValues;

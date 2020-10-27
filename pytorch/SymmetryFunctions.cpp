@@ -56,10 +56,15 @@ public:
                     for (const float thetas: ShfZ)
                         angularFunctions.push_back({eta, rs, zeta, thetas});
 
-        if (tensorOptions.device().is_cpu())
-            symFunc = std::make_shared<CpuANISymmetryFunctions>(numAtoms, numSpecies, Rcr, Rca, false, atomSpecies, radialFunctions, angularFunctions, true);
-        if (tensorOptions.device().is_cuda())
-            symFunc = std::make_shared<CudaANISymmetryFunctions>(numAtoms, numSpecies, Rcr, Rca, false, atomSpecies, radialFunctions, angularFunctions, true);
+        // if (tensorOptions.device().is_cpu())
+        //     symFunc = std::make_shared<CpuANISymmetryFunctions>(numAtoms, numSpecies, Rcr, Rca, false, atomSpecies, radialFunctions, angularFunctions, true);
+
+        if (tensorOptions.device().is_cuda()) {
+            neighbors = torch::empty({numAtoms, numAtoms}, tensorOptions.dtype(torch::kInt32));
+            neighborCount = torch::empty({numAtoms}, tensorOptions.dtype(torch::kInt32));
+            symFunc = std::make_shared<CudaANISymmetryFunctions>(numAtoms, numSpecies, Rcr, Rca, false, atomSpecies, radialFunctions, angularFunctions, true,
+                                                                 neighbors.data_ptr<int>(), neighborCount.data_ptr<int>());
+        }
 
         radial  = torch::empty({numAtoms, numSpecies * (int)radialFunctions.size()}, tensorOptions);
         angular = torch::empty({numAtoms, numSpecies * (numSpecies + 1) / 2 * (int)angularFunctions.size()}, tensorOptions);
@@ -98,6 +103,9 @@ private:
     torch::Tensor radial;
     torch::Tensor angular;
     torch::Tensor positionsGrad;
+
+    torch::Tensor neighbors;
+    torch::Tensor neighborCount;
 };
 
 class GradANISymmetryFunction : public torch::autograd::Function<GradANISymmetryFunction> {

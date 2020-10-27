@@ -36,14 +36,17 @@ using namespace std;
 const float Pi = (float) M_PI;
 
 CudaANISymmetryFunctions::CudaANISymmetryFunctions(int numAtoms, int numSpecies, float radialCutoff, float angularCutoff, bool periodic, const std::vector<int>& atomSpecies,
-        const std::vector<RadialFunction>& radialFunctions, const std::vector<AngularFunction>& angularFunctions, bool torchani) :
-           ANISymmetryFunctions(numAtoms, numSpecies, radialCutoff, angularCutoff, periodic, atomSpecies, radialFunctions, angularFunctions, torchani),
+        const std::vector<RadialFunction>& radialFunctions, const std::vector<AngularFunction>& angularFunctions, bool torchani,
+        int* neighbors_, int* neighborCount_) :
+           ANISymmetryFunctions(numAtoms, numSpecies, radialCutoff, angularCutoff, periodic, {}, radialFunctions, angularFunctions, torchani),
            positions(0), neighbors(0), neighborCount(0), periodicBoxVectors(0), angularIndex(0), atomSpeciesArray(0), radialFunctionArray(0), angularFunctionArray(0),
            radialValues(0), angularValues(0), positionDerivValues(0) {
-    CHECK_RESULT(cudaMallocManaged(&positions, numAtoms*sizeof(float3)));
-    CHECK_RESULT(cudaMallocManaged(&neighbors, numAtoms*numAtoms*sizeof(int)));
-    CHECK_RESULT(cudaMallocManaged(&neighborCount, numAtoms*sizeof(int)));
-    CHECK_RESULT(cudaMallocManaged(&periodicBoxVectors, 9*sizeof(float)));
+    // CHECK_RESULT(cudaMallocManaged(&positions, numAtoms*sizeof(float3)));
+    // CHECK_RESULT(cudaMallocManaged(&neighbors, numAtoms*numAtoms*sizeof(int)));
+    neighbors = neighbors_;
+    // CHECK_RESULT(cudaMallocManaged(&neighborCount, numAtoms*sizeof(int)));
+    neighborCount = neighborCount_;
+    // CHECK_RESULT(cudaMallocManaged(&periodicBoxVectors, 9*sizeof(float)));
     CHECK_RESULT(cudaMallocManaged(&angularIndex, numSpecies*numSpecies*sizeof(int)));
     CHECK_RESULT(cudaMallocManaged(&atomSpeciesArray, numAtoms*sizeof(int)));
     CHECK_RESULT(cudaMallocManaged(&radialFunctionArray, radialFunctions.size()*sizeof(RadialFunction)));
@@ -72,14 +75,14 @@ CudaANISymmetryFunctions::CudaANISymmetryFunctions(int numAtoms, int numSpecies,
 }
 
 CudaANISymmetryFunctions::~CudaANISymmetryFunctions() {
-    if (positions != 0)
-        cudaFree(positions);
-    if (neighbors != 0)
-        cudaFree(neighbors);
-    if (neighborCount != 0)
-        cudaFree(neighborCount);
-    if (periodicBoxVectors != 0)
-        cudaFree(periodicBoxVectors);
+    // if (positions != 0)
+    //     cudaFree(positions);
+    // if (neighbors != 0)
+    //     cudaFree(neighbors);
+    // if (neighborCount != 0)
+    //     cudaFree(neighborCount);
+    // if (periodicBoxVectors != 0)
+    //     cudaFree(periodicBoxVectors);
     if (angularIndex != 0)
         cudaFree(angularIndex);
     if (atomSpeciesArray != 0)
@@ -324,31 +327,33 @@ void CudaANISymmetryFunctions::computeSymmetryFunctions(const float* positions, 
 
     // Record the positions and periodic box vectors.
 
-    CHECK_RESULT(cudaMemcpyAsync(this->positions, positions, 3*numAtoms*sizeof(float), cudaMemcpyDefault));
-    float* hostBoxVectors;
+    // CHECK_RESULT(cudaMemcpyAsync(this->positions, positions, 3*numAtoms*sizeof(float), cudaMemcpyDefault));
+    this->positions = positions;
+    // float* hostBoxVectors;
     if (periodic) {
         // We'll need to access the box vectors on both host and device.  Figure out the most
         // efficient way of doing that.
 
-        result = cudaPointerGetAttributes(&attrib, periodicBoxVectors);
-        if (result != cudaSuccess || attrib.hostPointer == 0) {
-            CHECK_RESULT(cudaMemcpy(this->periodicBoxVectors, periodicBoxVectors, 9*sizeof(float), cudaMemcpyDefault));
-            hostBoxVectors = this->periodicBoxVectors;
-        }
-        else {
-            CHECK_RESULT(cudaMemcpyAsync(this->periodicBoxVectors, periodicBoxVectors, 9*sizeof(float), cudaMemcpyDefault));
-            hostBoxVectors = (float*) attrib.hostPointer;
-        }
+        // result = cudaPointerGetAttributes(&attrib, periodicBoxVectors);
+        // if (result != cudaSuccess || attrib.hostPointer == 0) {
+        //     CHECK_RESULT(cudaMemcpy(this->periodicBoxVectors, periodicBoxVectors, 9*sizeof(float), cudaMemcpyDefault));
+        //     hostBoxVectors = this->periodicBoxVectors;
+        // }
+        // else {
+        //     CHECK_RESULT(cudaMemcpyAsync(this->periodicBoxVectors, periodicBoxVectors, 9*sizeof(float), cudaMemcpyDefault));
+        //     hostBoxVectors = (float*) attrib.hostPointer;
+        // }
+        this->periodicBoxVectors = periodicBoxVectors;
     }
 
     // Determine whether we have a rectangular or triclinic periodic box.
     
     triclinic = false;
-    if (periodic)
-        for (int i = 0 ; i < 3; i++)
-            for (int j = 0; j < 3; j++)
-                if (i != j && hostBoxVectors[3*i+j] != 0)
-                    triclinic = true;
+    // if (periodic)
+    //     for (int i = 0 ; i < 3; i++)
+    //         for (int j = 0; j < 3; j++)
+    //             if (i != j && hostBoxVectors[3*i+j] != 0)
+    //                 triclinic = true;
 
     // Clear the output arrays.
 
@@ -363,26 +368,26 @@ void CudaANISymmetryFunctions::computeSymmetryFunctions(const float* positions, 
     int numAngular = angularFunctions.size();
     if (periodic) {
         if (triclinic) {
-            computeRadialFunctions<true, true><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numRadial, radialCutoff, angularCutoff, radialPtr, neighbors, neighborCount, (float3*) this->positions, this->periodicBoxVectors, radialFunctionArray, atomSpeciesArray);
+            computeRadialFunctions<true, true><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numRadial, radialCutoff, angularCutoff, radialPtr, neighbors, neighborCount, (const float3*) this->positions, this->periodicBoxVectors, radialFunctionArray, atomSpeciesArray);
             if (torchani)
-                computeAngularFunctions<true, true, true><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numAngular, angularCutoff, angularPtr, neighbors, neighborCount, (float3*) this->positions, this->periodicBoxVectors, angularFunctionArray, atomSpeciesArray, angularIndex);
+                computeAngularFunctions<true, true, true><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numAngular, angularCutoff, angularPtr, neighbors, neighborCount, (const float3*) this->positions, this->periodicBoxVectors, angularFunctionArray, atomSpeciesArray, angularIndex);
             else
-                computeAngularFunctions<true, true, false><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numAngular, angularCutoff, angularPtr, neighbors, neighborCount, (float3*) this->positions, this->periodicBoxVectors, angularFunctionArray, atomSpeciesArray, angularIndex);
+                computeAngularFunctions<true, true, false><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numAngular, angularCutoff, angularPtr, neighbors, neighborCount, (const float3*) this->positions, this->periodicBoxVectors, angularFunctionArray, atomSpeciesArray, angularIndex);
         }
         else {
-            computeRadialFunctions<true, false><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numRadial, radialCutoff, angularCutoff, radialPtr, neighbors, neighborCount, (float3*) this->positions, this->periodicBoxVectors, radialFunctionArray, atomSpeciesArray);
+            computeRadialFunctions<true, false><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numRadial, radialCutoff, angularCutoff, radialPtr, neighbors, neighborCount, (const float3*) this->positions, this->periodicBoxVectors, radialFunctionArray, atomSpeciesArray);
             if (torchani)
-                computeAngularFunctions<true, false, true><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numAngular, angularCutoff, angularPtr, neighbors, neighborCount, (float3*) this->positions, this->periodicBoxVectors, angularFunctionArray, atomSpeciesArray, angularIndex);
+                computeAngularFunctions<true, false, true><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numAngular, angularCutoff, angularPtr, neighbors, neighborCount, (const float3*) this->positions, this->periodicBoxVectors, angularFunctionArray, atomSpeciesArray, angularIndex);
             else
-                computeAngularFunctions<true, false, false><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numAngular, angularCutoff, angularPtr, neighbors, neighborCount, (float3*) this->positions, this->periodicBoxVectors, angularFunctionArray, atomSpeciesArray, angularIndex);
+                computeAngularFunctions<true, false, false><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numAngular, angularCutoff, angularPtr, neighbors, neighborCount, (const float3*) this->positions, this->periodicBoxVectors, angularFunctionArray, atomSpeciesArray, angularIndex);
         }
     }
     else {
-        computeRadialFunctions<false, false><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numRadial, radialCutoff, angularCutoff, radialPtr, neighbors, neighborCount, (float3*) this->positions, this->periodicBoxVectors, radialFunctionArray, atomSpeciesArray);
+        computeRadialFunctions<false, false><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numRadial, radialCutoff, angularCutoff, radialPtr, neighbors, neighborCount, (const float3*) this->positions, this->periodicBoxVectors, radialFunctionArray, atomSpeciesArray);
         if (torchani)
-            computeAngularFunctions<false, false, true><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numAngular, angularCutoff, angularPtr, neighbors, neighborCount, (float3*) this->positions, this->periodicBoxVectors, angularFunctionArray, atomSpeciesArray, angularIndex);
+            computeAngularFunctions<false, false, true><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numAngular, angularCutoff, angularPtr, neighbors, neighborCount, (const float3*) this->positions, this->periodicBoxVectors, angularFunctionArray, atomSpeciesArray, angularIndex);
         else
-            computeAngularFunctions<false, false, false><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numAngular, angularCutoff, angularPtr, neighbors, neighborCount, (float3*) this->positions, this->periodicBoxVectors, angularFunctionArray, atomSpeciesArray, angularIndex);
+            computeAngularFunctions<false, false, false><<<numBlocks, blockSize>>>(numAtoms, numSpecies, numAngular, angularCutoff, angularPtr, neighbors, neighborCount, (const float3*) this->positions, this->periodicBoxVectors, angularFunctionArray, atomSpeciesArray, angularIndex);
     }
 
     // Apply the overall scale factors to the symmetry functions.
