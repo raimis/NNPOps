@@ -51,9 +51,9 @@ CudaANISymmetryFunctions::CudaANISymmetryFunctions(int numAtoms, int numSpecies,
     CHECK_RESULT(cudaMallocManaged(&atomSpeciesArray, numAtoms*sizeof(int)));
     CHECK_RESULT(cudaMallocManaged(&radialFunctionArray, radialFunctions.size()*sizeof(RadialFunction)));
     CHECK_RESULT(cudaMallocManaged(&angularFunctionArray, angularFunctions.size()*sizeof(AngularFunction)));
-    CHECK_RESULT(cudaMallocManaged(&radialValues, numAtoms*numSpecies*radialFunctions.size()*sizeof(float)));
-    CHECK_RESULT(cudaMallocManaged(&angularValues, numAtoms*(numSpecies*(numSpecies+1))*angularFunctions.size()*sizeof(float)/2));
-    CHECK_RESULT(cudaMallocManaged(&positionDerivValues, numAtoms*sizeof(float3)));
+    // CHECK_RESULT(cudaMallocManaged(&radialValues, numAtoms*numSpecies*radialFunctions.size()*sizeof(float)));
+    // CHECK_RESULT(cudaMallocManaged(&angularValues, numAtoms*(numSpecies*(numSpecies+1))*angularFunctions.size()*sizeof(float)/2));
+    // CHECK_RESULT(cudaMallocManaged(&positionDerivValues, numAtoms*sizeof(float3)));
     CHECK_RESULT(cudaMemcpyAsync(atomSpeciesArray, atomSpecies.data(), atomSpecies.size()*sizeof(int), cudaMemcpyDefault));
     CHECK_RESULT(cudaMemcpyAsync(radialFunctionArray, radialFunctions.data(), radialFunctions.size()*sizeof(RadialFunction), cudaMemcpyDefault));
     CHECK_RESULT(cudaMemcpyAsync(angularFunctionArray, angularFunctions.data(), angularFunctions.size()*sizeof(AngularFunction), cudaMemcpyDefault));
@@ -91,12 +91,12 @@ CudaANISymmetryFunctions::~CudaANISymmetryFunctions() {
         cudaFree(radialFunctionArray);
     if (angularFunctionArray != 0)
         cudaFree(angularFunctionArray);
-    if (radialValues != 0)
-        cudaFree(radialValues);
-    if (angularValues != 0)
-        cudaFree(angularValues);
-    if (positionDerivValues != 0)
-        cudaFree(positionDerivValues);
+    // if (radialValues != 0)
+    //     cudaFree(radialValues);
+    // if (angularValues != 0)
+    //     cudaFree(angularValues);
+    // if (positionDerivValues != 0)
+    //     cudaFree(positionDerivValues);
 }
 
 template <bool PERIODIC, bool TRICLINIC>
@@ -302,28 +302,28 @@ void CudaANISymmetryFunctions::computeSymmetryFunctions(const float* positions, 
     // If the output arrays point to device memory, we can access them directly.
     // Otherwise, we'll need to perform extra copies.
 
-    bool radialOnDevice, angularOnDevice;
-    float* radialPtr;
-    float* angularPtr;
-    cudaPointerAttributes attrib;
-    cudaError_t result = cudaPointerGetAttributes(&attrib, radial);
-    if (result != cudaSuccess || attrib.devicePointer == 0) {
-        radialOnDevice = false;
-        radialPtr = radialValues;
-    }
-    else {
-        radialOnDevice = true;
-        radialPtr = (float*) attrib.devicePointer;
-    }
-    result = cudaPointerGetAttributes(&attrib, angular);
-    if (result != cudaSuccess || attrib.devicePointer == 0) {
-        angularOnDevice = false;
-        angularPtr = angularValues;
-    }
-    else {
-        angularOnDevice = true;
-        angularPtr = (float*) attrib.devicePointer;
-    }
+    // bool radialOnDevice, angularOnDevice;
+    float* radialPtr = radial;
+    float* angularPtr = angular;
+    // cudaPointerAttributes attrib;
+    // cudaError_t result = cudaPointerGetAttributes(&attrib, radial);
+    // if (result != cudaSuccess || attrib.devicePointer == 0) {
+    //     radialOnDevice = false;
+    //     radialPtr = radialValues;
+    // }
+    // else {
+    //     radialOnDevice = true;
+    //     radialPtr = (float*) attrib.devicePointer;
+    // }
+    // result = cudaPointerGetAttributes(&attrib, angular);
+    // if (result != cudaSuccess || attrib.devicePointer == 0) {
+    //     angularOnDevice = false;
+    //     angularPtr = angularValues;
+    // }
+    // else {
+    //     angularOnDevice = true;
+    //     angularPtr = (float*) attrib.devicePointer;
+    // }
 
     // Record the positions and periodic box vectors.
 
@@ -396,10 +396,10 @@ void CudaANISymmetryFunctions::computeSymmetryFunctions(const float* positions, 
 
     // Copy the final values to the destination memory.
 
-    if (!radialOnDevice)
-        CHECK_RESULT(cudaMemcpyAsync(radial, radialValues, numAtoms*numSpecies*radialFunctions.size()*sizeof(float), cudaMemcpyDefault));
-    if (!angularOnDevice)
-        CHECK_RESULT(cudaMemcpyAsync(angular, angularValues, numAtoms*(numSpecies*(numSpecies+1))*angularFunctions.size()*sizeof(float)/2, cudaMemcpyDefault));
+    // if (!radialOnDevice)
+    //     CHECK_RESULT(cudaMemcpyAsync(radial, radialValues, numAtoms*numSpecies*radialFunctions.size()*sizeof(float), cudaMemcpyDefault));
+    // if (!angularOnDevice)
+    //     CHECK_RESULT(cudaMemcpyAsync(angular, angularValues, numAtoms*(numSpecies*(numSpecies+1))*angularFunctions.size()*sizeof(float)/2, cudaMemcpyDefault));
 }
 
 template <bool PERIODIC, bool TRICLINIC>
