@@ -47,7 +47,7 @@ public:
      */
     CudaANISymmetryFunctions(int numAtoms, int numSpecies, float radialCutoff, float angularCutoff, bool periodic, const std::vector<int>& atomSpecies,
             const std::vector<RadialFunction>& radialFunctions, const std::vector<AngularFunction>& angularFunctions, bool torchani,
-            int* neighbors, int* neighborCount);
+            int* neighbors, int* neighborCount, int* angularIndex, int* atomSpecies_, float* radialFunctions_, float* angularFunctions_);
     /**
      * Release memory when the object is destroyed.
      */

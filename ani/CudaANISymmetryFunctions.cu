@@ -37,7 +37,7 @@ const float Pi = (float) M_PI;
 
 CudaANISymmetryFunctions::CudaANISymmetryFunctions(int numAtoms, int numSpecies, float radialCutoff, float angularCutoff, bool periodic, const std::vector<int>& atomSpecies,
         const std::vector<RadialFunction>& radialFunctions, const std::vector<AngularFunction>& angularFunctions, bool torchani,
-        int* neighbors_, int* neighborCount_) :
+        int* neighbors_, int* neighborCount_, int* angularIndex_, int* atomSpecies_, float* radialFunctions_, float* angularFunctions_) :
            ANISymmetryFunctions(numAtoms, numSpecies, radialCutoff, angularCutoff, periodic, {}, radialFunctions, angularFunctions, torchani),
            positions(0), neighbors(0), neighborCount(0), periodicBoxVectors(0), angularIndex(0), atomSpeciesArray(0), radialFunctionArray(0), angularFunctionArray(0),
            radialValues(0), angularValues(0), positionDerivValues(0) {
@@ -48,9 +48,13 @@ CudaANISymmetryFunctions::CudaANISymmetryFunctions(int numAtoms, int numSpecies,
     neighborCount = neighborCount_;
     // CHECK_RESULT(cudaMallocManaged(&periodicBoxVectors, 9*sizeof(float)));
     CHECK_RESULT(cudaMallocManaged(&angularIndex, numSpecies*numSpecies*sizeof(int)));
-    CHECK_RESULT(cudaMallocManaged(&atomSpeciesArray, numAtoms*sizeof(int)));
-    CHECK_RESULT(cudaMallocManaged(&radialFunctionArray, radialFunctions.size()*sizeof(RadialFunction)));
-    CHECK_RESULT(cudaMallocManaged(&angularFunctionArray, angularFunctions.size()*sizeof(AngularFunction)));
+    // angularIndex = angularIndex_;
+    // CHECK_RESULT(cudaMallocManaged(&atomSpeciesArray, numAtoms*sizeof(int)));
+    atomSpeciesArray = atomSpecies_;
+    // CHECK_RESULT(cudaMallocManaged(&radialFunctionArray, radialFunctions.size()*sizeof(RadialFunction)));
+    radialFunctionArray = (RadialFunction*) radialFunctions_;
+    // CHECK_RESULT(cudaMallocManaged(&angularFunctionArray, angularFunctions.size()*sizeof(AngularFunction)));
+    angularFunctionArray = (AngularFunction*) angularFunctions_;
     // CHECK_RESULT(cudaMallocManaged(&radialValues, numAtoms*numSpecies*radialFunctions.size()*sizeof(float)));
     // CHECK_RESULT(cudaMallocManaged(&angularValues, numAtoms*(numSpecies*(numSpecies+1))*angularFunctions.size()*sizeof(float)/2));
     // CHECK_RESULT(cudaMallocManaged(&positionDerivValues, numAtoms*sizeof(float3)));
@@ -85,12 +89,12 @@ CudaANISymmetryFunctions::~CudaANISymmetryFunctions() {
     //     cudaFree(periodicBoxVectors);
     if (angularIndex != 0)
         cudaFree(angularIndex);
-    if (atomSpeciesArray != 0)
-        cudaFree(atomSpeciesArray);
-    if (radialFunctionArray != 0)
-        cudaFree(radialFunctionArray);
-    if (angularFunctionArray != 0)
-        cudaFree(angularFunctionArray);
+    // if (atomSpeciesArray != 0)
+    //     cudaFree(atomSpeciesArray);
+    // if (radialFunctionArray != 0)
+    //     cudaFree(radialFunctionArray);
+    // if (angularFunctionArray != 0)
+    //     cudaFree(angularFunctionArray);
     // if (radialValues != 0)
     //     cudaFree(radialValues);
     // if (angularValues != 0)

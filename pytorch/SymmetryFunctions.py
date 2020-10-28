@@ -116,7 +116,7 @@ class TorchANISymmetryFunctions(torch.nn.Module):
         symFunc = torch.ops.NNPOps.ANISymmetryFunctions
         radial, angular = symFunc(self.numSpecies, self.Rcr, self.Rca, self.EtaR, self.ShfR,
                                   self.EtaA, self.Zeta, self.ShfA, self.ShfZ,
-                                  species_, positions[0], cell)
+                                  species_, species[0].to(torch.int32), positions[0], cell)
         features = torch.cat((radial, angular), dim=1).unsqueeze(0)
 
         return SpeciesAEV(species, features)
